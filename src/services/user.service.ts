@@ -27,8 +27,10 @@ class UserService {
     return existingUser;
   }
 
-  // Assuming dataSource is an instance of DataSource and is already initialized
-  // This instance should be accessible in the context of this function
+  async updateUser(user: User) {
+    const result = await this.create(user);
+    return result;
+  }
 
   async findAll(params: {
     query?: string;
@@ -76,49 +78,6 @@ class UserService {
       totalPages: Math.ceil(totalUsersCount / pageSize),
     };
   }
-
-  //   async findOrCreate(user: User) {
-  //     let result = await this.findByPhoneNumber(user.phoneNumber);
-  //     if (!result) {
-  //       result = await user.save();
-  //     }
-  //     return result;
-  //   }
-
-  //   async findByPhoneNumber(phoneNumber: string) {
-  //     const user = await User.findOne({ where: { phoneNumber } });
-  //     return user;
-  //   }
-
-  //   async findAllFiltered(filter: FilteredUser) {
-  //     let user: SelectQueryBuilder<User> | PaginationAwareObject = getRepository(
-  //       User
-  //     )
-  //       .createQueryBuilder("user")
-  //       .leftJoinAndSelect("user.role", "role");
-
-  //     if (filter.ids && filter.ids.length) {
-  //       user = user.andWhere("id IN :ids", { ids: filter.ids });
-  //     }
-
-  //     if (filter.name) {
-  //       user = user.andWhere("name LIKE :name", { name: `%${filter.name}%` });
-  //     }
-
-  //     if (filter.phoneNumber) {
-  //       user = user.andWhere("user.phoneNumber LIKE :number", {
-  //         number: `%${filter.phoneNumber}%`,
-  //       });
-  //     }
-
-  //     if (filter.role) {
-  //       user = user.andWhere("role.name = :role", { role: filter.role });
-  //     }
-
-  //     user = await user.paginate();
-
-  //     return user;
-  //   }
 }
 
 export default new UserService();

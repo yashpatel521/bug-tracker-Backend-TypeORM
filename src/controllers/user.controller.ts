@@ -4,58 +4,74 @@ import { User } from "../entity/user.entity";
 import ApiResponse from "../Response/ApiResponse";
 import userService from "../services/user.service";
 import { BadRequest } from "../Errors/errors";
-import jwt from "jsonwebtoken";
 import { DeepPartial } from "typeorm";
 import Middleware from "../middlewares/Middleware";
 import * as bcrypt from "bcrypt";
-import {
-  REFRESH_TOKEN_SECRET,
-  refreshTokenSecretExpire,
-  TOKEN_SECRET,
-  tokenSecretExpire,
-} from "../types/constant";
-
-function getJwt(user: User) {
-  const data = {
-    id: user.id,
-  };
-
-  const accessToken = jwt.sign(data, TOKEN_SECRET!, {
-    expiresIn: tokenSecretExpire,
-  });
-
-  const refreshToken = jwt.sign(data, REFRESH_TOKEN_SECRET!, {
-    expiresIn: refreshTokenSecretExpire,
-  });
-
-  return { accessToken, refreshToken };
-}
+import { getJwt } from "../utils/JWT";
+import subRoleService from "../services/subRole.service";
+import { imageUploader } from "../utils/imageUpload";
+import { UploadedFile } from "express-fileupload";
 
 class UserController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { firstName, lastName, roleId, email, password } = req.body;
-
-      let role = await roleService.getRoleById(+roleId);
+      const {
+        firstName,
+        lastName,
+        roleId,
+        subRoleId,
+        email,
+        password,
+        status,
+      } = req.body;
+      // add validation for the request body
+      if (!firstName || !lastName || !email || !password || !status) {
+        throw new BadRequest("Missing required fields", 400);
+      }
+      if (!email.match(/^\S+@\S+\.\S+$/)) {
+        throw new BadRequest("Invalid email format", 400);
+      }
+      if (password.length < 8) {
+        throw new BadRequest(
+          "Password must be at least 8 characters long",
+          400
+        );
+      }
+      if (
+        !password.match(
+          /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}/
+        )
+      ) {
+        throw new BadRequest(
+          "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+        );
+      }
 
       let checkEmailExists = await userService.findByEmail(email);
-
       if (checkEmailExists) {
-        const message = Middleware.setColor(
-          `Email already exists ${email}`,
-          Middleware.FgRed
-        );
-        console.log(message);
-
         throw new BadRequest(`Email already exists ${email}`, 401);
       }
 
+      let role = await roleService.getRoleById(+roleId);
+      if (!role) throw new BadRequest("Role not found", 400);
+
+      let subRole = await subRoleService.getSubRoleById(+subRoleId);
+      if (!subRole) throw new BadRequest("Sub Role not found", 400);
+
+      let image = req.files?.file as UploadedFile;
+      let profile = "https://github.com/shadcn.png";
+      if (image) {
+        profile = await imageUploader(image, "user");
+      }
       let user = User.create({
         firstName,
         lastName,
         role,
+        subRole,
         email,
         password,
+        status,
+        profile,
       });
 
       user = await userService.create(user);
@@ -87,12 +103,11 @@ class UserController {
       const { email, password } = req.body;
       const user = await userService.findByEmail(email);
       if (!user) {
-        throw new BadRequest("Invalid credentias", 401);
+        throw new BadRequest("Invalid credentials", 401);
       }
-      //check password first hash the password and compare
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        throw new BadRequest("Invalid credentias", 401);
+        throw new BadRequest("Invalid credentials", 401);
       }
 
       const jwt = getJwt(user);
@@ -102,7 +117,6 @@ class UserController {
         ...jwt,
         user: filteredData,
       };
-      // return res.status(200).json({ success: true, data });
 
       return ApiResponse.successResponse(res, data);
     } catch (error) {

@@ -4,7 +4,8 @@ import userController from "../controllers/user.controller";
 import { Auth } from "../middlewares/Auth";
 
 const router = express.Router();
-router.post("/", validate.body(schemas.createUser), userController.create);
+
+router.post("/", userController.create);
 router.post("/login", validate.body(schemas.login), userController.login);
 router.get("/", Auth, userController.viewAll);
 

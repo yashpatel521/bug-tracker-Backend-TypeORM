@@ -7,12 +7,10 @@ class RoleService {
     return result;
   }
 
-  async getRoleByname(name: string) {
+  async getRoleByName(name: string) {
     const role = await Role.findOne({
       where: { name: name.toLocaleLowerCase() },
     });
-    if (!role) throw new BadRequest("Role not found", 400);
-    console.log(role);
     return role;
   }
 
@@ -20,16 +18,6 @@ class RoleService {
     const role = await Role.findOne({
       where: { id: roleId },
     });
-    if (!role) throw new BadRequest("Role not found", 400);
-    console.log(role);
-    return role;
-  }
-
-  async checkRoleExists(name: string) {
-    const role = await Role.findOne({
-      where: { name: name.toLocaleLowerCase() },
-    });
-    if (role) throw new BadRequest("Role already exists", 400);
     return role;
   }
 
@@ -41,6 +29,11 @@ class RoleService {
       return await this.create(role);
     }
     return existingRole;
+  }
+
+  async getAllRoles() {
+    const roles = await Role.find();
+    return roles;
   }
 }
 

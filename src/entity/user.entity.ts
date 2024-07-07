@@ -6,11 +6,13 @@ import {
   CreateDateColumn,
   ManyToOne,
   BeforeInsert,
+  AfterLoad,
 } from "typeorm";
 import { Role } from "./role.entity";
 import * as bcrypt from "bcrypt";
-import { userStatus } from "src/types/types";
+import { userStatus } from "../utils/types";
 import { SubRole } from "./subRole.entity";
+import { SERVER_URL } from "../utils/constant";
 
 @Entity()
 export class User extends BaseEntity {
@@ -47,5 +49,25 @@ export class User extends BaseEntity {
   @BeforeInsert()
   hashPassword() {
     this.password = bcrypt.hashSync(this.password, 12);
+  }
+
+  @AfterLoad()
+  afterLoad() {
+    if (this.profile) {
+      if (!this.isValidHttpUrl(this.profile)) {
+        this.profile = SERVER_URL + this.profile;
+      }
+    } else {
+      this.profile = "https://github.com/shadcn.png";
+    }
+  }
+  isValidHttpUrl(string: string) {
+    let url: any;
+    try {
+      url = new URL(string);
+    } catch (_) {
+      return false;
+    }
+    return url.protocol === "http:" || url.protocol === "https:";
   }
 }

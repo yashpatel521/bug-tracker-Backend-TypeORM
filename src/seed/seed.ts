@@ -3,7 +3,7 @@ import subRoleService from "../services/subRole.service";
 import { Role } from "../entity/role.entity";
 import { SubRole } from "../entity/subRole.entity";
 import { User } from "../entity/user.entity";
-import { userStatus } from "../types/types";
+import { userStatus } from "../utils/types";
 import myDataSource from "../app-data-source";
 import userService from "../services/user.service";
 
@@ -87,7 +87,9 @@ export async function insertRolesAndSubRoles() {
   }
 
   // insert admin sub roles
-  const adminRole = await roleService.getRoleByname("admin");
+  const adminRole = await roleService.insertRoleIfNotExists(
+    Role.create({ name: "admin" })
+  );
   let newSubRole = SubRole.create({
     name: "admin",
     role: adminRole,
@@ -96,7 +98,9 @@ export async function insertRolesAndSubRoles() {
 
   // Insert subroles
   for (const subRoleName of subRoles) {
-    const role = await roleService.getRoleByname("employee");
+    const role = await roleService.insertRoleIfNotExists(
+      Role.create({ name: "employee" })
+    );
     let newSubRole = SubRole.create({
       name: subRoleName.toLowerCase(),
       role: role,

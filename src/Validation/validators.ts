@@ -13,7 +13,8 @@ class Validator {
   createUser = Joi.object({
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
-    roleId: Joi.number().required(),
+    roleId: Joi.string().required(),
+    subRoleId: Joi.string().required(),
     email: Joi.string().required().email(),
     password: Joi.string()
       .required()
@@ -23,25 +24,18 @@ class Validator {
       .message(
         "Password must include at least one special character (!@#$%^&*)"
       ),
+    status: Joi.string().required(),
+    file: Joi.any(),
   });
 
   createRole = Joi.object({
-    type: Joi.string().required(),
+    name: Joi.string().required(),
   });
 
-  // createUser = Joi.object({
-  //   name: Joi.string().required(),
-  //   phoneNumber: Joi.string().required().length(10),
-  //   pin: Joi.any().when("role", {
-  //     is: roles.employee,
-  //     then: Joi.string().required(),
-  //   }),
-  //   secret: Joi.string().empty(),
-  //   role: Joi.string()
-  //     .empty()
-  //     .valid(...Object.values(roles))
-  //     .required(),
-  // });
+  createSubRole = Joi.object({
+    name: Joi.string().required(),
+    roleId: Joi.number().required(),
+  });
 
   login = Joi.object({
     email: Joi.string().required().email(),

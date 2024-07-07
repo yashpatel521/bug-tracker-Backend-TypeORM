@@ -2,8 +2,8 @@ import { NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import userService from "../services/user.service";
 import { BadRequest } from "../Errors/errors";
-import { AuthRequest } from "../types/types";
-import { TOKEN_SECRET } from "../types/constant";
+import { AuthRequest } from "../utils/types";
+import { TOKEN_SECRET } from "../utils/constant";
 
 interface JWT_DECODE {
   id: number;
