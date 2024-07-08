@@ -22,6 +22,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
 import subRoleRoutes from "./routes/subRole.routes";
+import googlePlayRoutes from "./routes/googlePlay.routes";
 import { RequestError } from "./utils/types";
 import { getLocalIpAddress, PORT } from "./utils/constant";
 
@@ -37,6 +38,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/users", userRoutes);
 app.use("/roles", roleRoutes);
 app.use("/subRoles", subRoleRoutes);
+app.use("/api/", googlePlayRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({
