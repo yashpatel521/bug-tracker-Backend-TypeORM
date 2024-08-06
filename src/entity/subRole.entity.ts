@@ -19,7 +19,10 @@ export class SubRole extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @ManyToOne(() => Role, (role) => role.subRoles, { nullable: false })
+  @ManyToOne(() => Role, (role) => role.subRoles, {
+    nullable: false,
+    onDelete: "CASCADE",
+  })
   role: Role;
 
   @OneToMany(() => User, (user) => user.subRole)

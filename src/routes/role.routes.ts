@@ -5,7 +5,13 @@ import { Auth } from "../middlewares/Auth";
 
 const router = express.Router();
 
-router.post("/", validate.body(schemas.createRole), roleController.create);
+router.post(
+  "/",
+  Auth,
+  validate.body(schemas.createRole),
+  roleController.create
+);
 router.get("/", Auth, roleController.viewAll);
+router.delete("/:id", Auth, roleController.delete);
 
 export default router;

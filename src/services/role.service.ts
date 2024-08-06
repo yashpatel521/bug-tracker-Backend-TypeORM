@@ -35,6 +35,11 @@ class RoleService {
     const roles = await Role.find();
     return roles;
   }
+
+  async delete(role: Role) {
+    await Role.remove(role);
+    return true;
+  }
 }
 
 export default new RoleService();

@@ -7,9 +7,9 @@ import { BadRequest } from "../Errors/errors";
 import { DeepPartial } from "typeorm";
 import Middleware from "../middlewares/Middleware";
 import * as bcrypt from "bcrypt";
-import { getJwt } from "../utils/JWT";
+import { checkRoleAccess, getJwt } from "../utils/commonFunction";
 import subRoleService from "../services/subRole.service";
-import { imageUploader } from "../utils/imageUpload";
+import { fileUploader } from "../utils/imageUpload";
 import { UploadedFile } from "express-fileupload";
 
 class UserController {
@@ -58,10 +58,10 @@ class UserController {
       let subRole = await subRoleService.getSubRoleById(+subRoleId);
       if (!subRole) throw new BadRequest("Sub Role not found", 400);
 
-      let image = req.files?.file as UploadedFile;
+      let image = req.files?.image as UploadedFile;
       let profile = "https://github.com/shadcn.png";
       if (image) {
-        profile = await imageUploader(image, "user");
+        profile = await fileUploader(image, "user");
       }
       let user = User.create({
         firstName,
@@ -82,9 +82,13 @@ class UserController {
     }
   }
 
-  async viewAll(req: Request, res: Response, next: NextFunction) {
+  async viewAll(req: Request | any, res: Response, next: NextFunction) {
     try {
       const { query, currentPage, sortBy, sortOrder } = req.query;
+      const user = req.user;
+      if (!checkRoleAccess(user, ["admin"])) {
+        throw new BadRequest("Access denied", 403);
+      }
       const data = await userService.findAll({
         query: query?.toString(),
         currentPage: currentPage?.toString() || "1",

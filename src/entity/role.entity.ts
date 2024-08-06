@@ -19,7 +19,9 @@ export class Role extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @OneToMany(() => SubRole, (subRole) => subRole.role)
+  @OneToMany(() => SubRole, (subRole) => subRole.role, {
+    onDelete: "CASCADE",
+  })
   subRoles: SubRole[];
 
   @OneToMany(() => User, (user) => user.role)

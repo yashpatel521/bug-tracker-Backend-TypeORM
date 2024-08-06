@@ -11,5 +11,6 @@ router.post(
   subRoleController.create
 );
 router.get("/", Auth, subRoleController.viewAll);
+router.delete("/:id", Auth, subRoleController.delete);
 
 export default router;

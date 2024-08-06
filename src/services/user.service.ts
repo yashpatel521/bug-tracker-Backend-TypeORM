@@ -1,11 +1,16 @@
 import { User } from "../entity/user.entity";
 import myDataSource from "../app-data-source";
+import userProjectService from "./userProject.service";
 
 class UserService {
-  async findById(id: number) {
+  async findById(id: number): Promise<User | null> {
     return await User.findOne({
       where: { id },
     });
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await User.find();
   }
   async create(user: User) {
     const result = await User.save(user);
@@ -39,7 +44,6 @@ class UserService {
     sortOrder?: string;
   }) {
     const { query, currentPage, sortBy, sortOrder } = params;
-    console.log(query, currentPage, sortBy, sortOrder);
     const pageSize = 5;
     const pageNumber = parseInt(currentPage, 10) || 1;
 
@@ -50,11 +54,11 @@ class UserService {
       .leftJoinAndSelect("user.subRole", "subRole");
 
     if (query) {
-      queryBuilder = queryBuilder.where("Lower(user.firstName) LIKE :query", {
-        query: `%${query.toLocaleLowerCase()}%`,
+      queryBuilder = queryBuilder.where("LOWER(user.firstName) LIKE :query", {
+        query: `%${query.toLowerCase()}%`,
       });
-      queryBuilder = queryBuilder.orWhere("Lower(user.lastName) LIKE :query", {
-        query: `%${query.toLocaleLowerCase()}%`,
+      queryBuilder = queryBuilder.orWhere("LOWER(user.lastName) LIKE :query", {
+        query: `%${query.toLowerCase()}%`,
       });
     }
 
@@ -66,13 +70,20 @@ class UserService {
     }
 
     const [users, totalUsersCount] = await queryBuilder
-
       .skip((pageNumber - 1) * pageSize)
       .take(pageSize)
       .getManyAndCount();
 
+    const usersWithProjectCount = await Promise.all(
+      users.map(async (user) => {
+        const projectAssigned =
+          await userProjectService.getProjectCountByUserId(user.id);
+        return { ...user, projectAssigned };
+      })
+    );
+
     return {
-      users,
+      users: usersWithProjectCount,
       total: totalUsersCount,
       currentPage: pageNumber,
       totalPages: Math.ceil(totalUsersCount / pageSize),

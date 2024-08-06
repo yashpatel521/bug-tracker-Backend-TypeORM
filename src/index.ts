@@ -6,7 +6,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import fileUpload from "express-fileupload";
 const app = express();
-app.use(Middleware.requestLogs);
+// app.use(Middleware.requestLogs);
 
 app.use(cors());
 app.use(
@@ -23,6 +23,7 @@ import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
 import subRoleRoutes from "./routes/subRole.routes";
 import googlePlayRoutes from "./routes/googlePlay.routes";
+import projectsRoutes from "./routes/projects.routes";
 import { RequestError } from "./utils/types";
 import { getLocalIpAddress, PORT } from "./utils/constant";
 
@@ -38,7 +39,8 @@ app.use("/uploads", express.static("uploads"));
 app.use("/users", userRoutes);
 app.use("/roles", roleRoutes);
 app.use("/subRoles", subRoleRoutes);
-app.use("/api/", googlePlayRoutes);
+app.use("/projects", projectsRoutes);
+app.use("/api", googlePlayRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({
@@ -49,22 +51,11 @@ app.get("/", (req: Request, res: Response) => {
 // Error handling middleware
 app.use(
   (err: RequestError, _req: Request, res: Response, next: NextFunction) => {
-    console.error(err);
-    console.error(err.stack);
-
-    if (err.code.toString() === "LIMIT_UNEXPECTED_FILE") {
-      return res.status(400).json({
-        success: false,
-        message: "Unexpected file field",
-        data: null,
-      });
-    }
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    res.status(err.code || 500).json({
+    let statusCode = err.code || 500;
+    // if (err.code.toString() === "23505") {
+    //   statusCode = 409; // Conflict
+    // }
+    return res.status(statusCode).json({
       success: false,
       name: err.name,
       message: err.message,

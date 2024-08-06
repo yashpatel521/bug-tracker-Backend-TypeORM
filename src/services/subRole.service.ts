@@ -35,8 +35,15 @@ class SubRoleService {
   }
 
   async getAllSubRoles() {
-    const subRoles = await SubRole.find();
+    const subRoles = await SubRole.find({
+      relations: ["role"],
+    });
     return subRoles;
+  }
+
+  async delete(subRole: SubRole) {
+    await SubRole.remove(subRole);
+    return true;
   }
 }
 

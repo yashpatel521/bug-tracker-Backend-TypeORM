@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { UploadedFile } from "express-fileupload";
 
-export const imageUploader = async (
+export const fileUploader = async (
   file: UploadedFile,
   uploadDir: string
 ): Promise<string> => {

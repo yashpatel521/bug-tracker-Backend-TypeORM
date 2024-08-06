@@ -1,8 +1,16 @@
 import { Router } from "express";
-import { getAppInfo } from "../controllers/googlePlay.Controllers";
+import {
+  checkDailyStats,
+  getAppInfo,
+  searchAppInfo,
+  suggestAppInfo,
+} from "../controllers/googlePlay.Controllers";
 
 const router = Router();
 
 router.get("/app/:appId", getAppInfo);
+router.get("/search", searchAppInfo);
+router.get("/suggest", suggestAppInfo);
+router.get("/checkDailyStats", checkDailyStats);
 
 export default router;

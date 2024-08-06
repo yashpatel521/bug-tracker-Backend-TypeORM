@@ -6,75 +6,10 @@ import { User } from "../entity/user.entity";
 import { userStatus } from "../utils/types";
 import myDataSource from "../app-data-source";
 import userService from "../services/user.service";
+import users from "./user.json";
 
 const roles = ["admin", "employee"];
 const subRoles = ["Developer", "Designer", "Tester", "Manager", "Team Leader"];
-
-const users = [
-  {
-    firstname: "Yash",
-    lastname: "Patel",
-    email: "yash@example.com",
-    password: "123456",
-    status: "active",
-    role: "admin",
-    subrole: "admin",
-  },
-  {
-    firstname: "John",
-    lastname: "Doe",
-    email: "john@example.com",
-    password: "123456",
-    status: "active",
-    role: "employee",
-    subrole: "developer",
-  },
-  {
-    firstname: "Jane",
-    lastname: "Doe",
-    email: "jane@example.com",
-    password: "123456",
-    status: "active",
-    role: "employee",
-    subrole: "tester",
-  },
-  {
-    firstname: "Sarah",
-    lastname: "Smith",
-    email: "sarah@example.com",
-    password: "123456",
-    status: "active",
-    role: "employee",
-    subrole: "manager",
-  },
-  {
-    firstname: "Michael",
-    lastname: "Johnson",
-    email: "michael@example.com",
-    password: "123456",
-    status: "active",
-    role: "employee",
-    subrole: "team leader",
-  },
-  {
-    firstname: "David",
-    lastname: "Williams",
-    email: "david@example.com",
-    password: "123456",
-    status: "active",
-    role: "employee",
-    subrole: "developer",
-  },
-  {
-    firstname: "Emily",
-    lastname: "Davis",
-    email: "emily@example.com",
-    password: "123456",
-    status: "active",
-    role: "employee",
-    subrole: "developer",
-  },
-];
 
 // insert into database
 export async function insertRolesAndSubRoles() {

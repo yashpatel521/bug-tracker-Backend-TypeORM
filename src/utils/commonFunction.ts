@@ -1,10 +1,11 @@
 import { User } from "../entity/user.entity";
+import { BadRequest } from "../Errors/errors";
 import {
   REFRESH_TOKEN_SECRET,
   refreshTokenSecretExpire,
   TOKEN_SECRET,
   tokenSecretExpire,
-} from "../utils/constant";
+} from "./constant";
 import jwt from "jsonwebtoken";
 export function getJwt(user: User) {
   const data = {
@@ -20,4 +21,16 @@ export function getJwt(user: User) {
   });
 
   return { accessToken, refreshToken };
+}
+
+export function checkRoleAccess(user: User, type: string[]) {
+  if (!user.role || !user.subRole) {
+    throw new BadRequest("Role must be specified");
+  }
+  if (
+    type.includes(user.role.name.toLocaleLowerCase()) ||
+    type.includes(user.subRole.name.toLocaleLowerCase())
+  ) {
+    return true;
+  } else return false;
 }

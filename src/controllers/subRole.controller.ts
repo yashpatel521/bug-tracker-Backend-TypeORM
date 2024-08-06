@@ -4,6 +4,7 @@ import { BadRequest } from "../Errors/errors";
 import subRoleService from "../services/subRole.service";
 import { SubRole } from "../entity/subRole.entity";
 import roleService from "../services/role.service";
+import { checkRoleAccess } from "../utils/commonFunction";
 
 class SubRoleController {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -30,10 +31,25 @@ class SubRoleController {
     }
   }
 
-  async viewAll(req: Request, res: Response, next: NextFunction) {
+  async viewAll(req: Request | any, res: Response, next: NextFunction) {
     try {
+      const user = req.user;
+      if (!checkRoleAccess(user, ["admin"])) {
+        throw new BadRequest("Access denied", 403);
+      }
       const data = await subRoleService.getAllSubRoles();
       return ApiResponse.successResponse(res, data);
+    } catch (error) {
+      return next(error);
+    }
+  }
+  async delete(req: Request | any, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const subRole = await subRoleService.getSubRoleById(id);
+      if (!subRole) throw new BadRequest("Sub Role not found", 404);
+      await subRoleService.delete(subRole);
+      return ApiResponse.successResponse(res, "Sub Role deleted successfully");
     } catch (error) {
       return next(error);
     }
