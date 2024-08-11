@@ -71,17 +71,13 @@ export const getAppDetails = async (appId: string): Promise<any> => {
 
 export const searchApps = async (term: string): Promise<any> => {
   const searchResults: any = await executeScript("search", term);
-  const res = searchResults.map((result: any) => {
-    return {
-      title: result.title,
-      appId: result.appId,
-      appUrl: result.url,
-      icon: result.icon,
-    };
-  });
-  return res;
+  return searchResults;
 };
 
 export const suggestApps = (term: string): Promise<any> => {
   return executeScript("suggest", term);
+};
+
+export const getTopApps = (): Promise<any> => {
+  return executeScript("TOP_APP", "temp");
 };

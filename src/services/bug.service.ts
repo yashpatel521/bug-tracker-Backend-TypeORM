@@ -1,5 +1,6 @@
 import myDataSource from "../app-data-source";
 import { Bug } from "../entity/bug.entity";
+import { BugImage } from "../entity/bugImage.entity";
 
 class BugService {
   async getBugsByProjectAndVersionId(
@@ -63,9 +64,30 @@ class BugService {
     const bugRepository = myDataSource.getRepository(Bug);
     const bug = await bugRepository.findOne({
       where: { id: bugId },
-      relations: ["reportedBy", "assignedTo", "images"],
+      relations: ["reportedBy", "assignedTo", "images", "project"],
     });
     return bug;
+  }
+
+  async updateBug(bug: Bug) {
+    await Bug.save(bug);
+    return true;
+  }
+
+  async getImageById(id: number) {
+    const result = await BugImage.findOne({
+      where: { id },
+    });
+    return result;
+  }
+  async deleteBugImage(bugImage: BugImage) {
+    await BugImage.remove(bugImage);
+    return true;
+  }
+
+  async createBugImage(bugImage: BugImage) {
+    const result = await BugImage.save(bugImage);
+    return result;
   }
 }
 

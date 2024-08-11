@@ -40,7 +40,7 @@ app.use("/users", userRoutes);
 app.use("/roles", roleRoutes);
 app.use("/subRoles", subRoleRoutes);
 app.use("/projects", projectsRoutes);
-app.use("/api", googlePlayRoutes);
+app.use("/liveTrack", googlePlayRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({

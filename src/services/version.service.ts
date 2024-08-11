@@ -21,6 +21,16 @@ class VesrionService {
     });
     return result;
   }
+  async getVersionById(versionId: number) {
+    const result = await Version.findOne({
+      where: { id: versionId },
+    });
+    return result;
+  }
+  async delete(version: Version) {
+    await Version.remove(version);
+    return true;
+  }
 }
 
 export default new VesrionService();

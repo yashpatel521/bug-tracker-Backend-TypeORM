@@ -4,7 +4,7 @@ import projectsService from "../services/projects.service";
 import { BadRequest } from "../Errors/errors";
 import { UserProject } from "../entity/userProject.entity";
 import userProjectService from "../services/userProject.service";
-import { fileUploader } from "../utils/imageUpload";
+import { deleteFile, fileUploader } from "../utils/imageUpload";
 import { UploadedFile } from "express-fileupload";
 import versionService from "../services/version.service";
 import { Version } from "../entity/version.entity";
@@ -13,6 +13,8 @@ import { PinnedProject } from "../entity/pinnedProject.entity";
 import { checkRoleAccess } from "../utils/commonFunction";
 import { Project } from "../entity/project.entity";
 import bugService from "../services/bug.service";
+import { User } from "../entity/user.entity";
+import { BugImage } from "../entity/bugImage.entity";
 
 class ProjectsController {
   async createProject(req: Request | any, res: Response, next: NextFunction) {
@@ -29,8 +31,12 @@ class ProjectsController {
         firebaseAccount,
         privacyPolicyUrl,
         status,
+        appType,
       } = req.body;
       const user = req.user;
+      if (!checkRoleAccess(user, ["admin"])) {
+        throw new BadRequest("Unauthorized to create project");
+      }
       let projectObj = {
         title: title,
         summary: "",
@@ -46,10 +52,11 @@ class ProjectsController {
         privacyPolicyUrl: privacyPolicyUrl || "",
         status: status || "inprogress",
         createdBy: user,
+        appType: appType || "google",
       };
 
-      if (req.files?.file as UploadedFile) {
-        const file = req.files?.file as UploadedFile;
+      if (req.files?.appIcon as UploadedFile) {
+        const file = req.files?.appIcon as UploadedFile;
         projectObj.appIcon = await fileUploader(file, "project/icon");
       }
 
@@ -61,6 +68,7 @@ class ProjectsController {
         project: { id: result.id },
       });
       await userProjectService.create(userProjectAdd);
+
       return ApiResponse.successResponse(res, result);
     } catch (error) {
       return next(error);
@@ -112,7 +120,7 @@ class ProjectsController {
     }
   }
 
-  async addUserToProject(
+  async editUserToProject(
     req: Request | any,
     res: Response,
     next: NextFunction
@@ -120,45 +128,23 @@ class ProjectsController {
     try {
       const user = req.user;
       const { projectId, userIds } = req.body;
-      let usersInProject = await userProjectService.getUsersInProject(
-        +projectId
-      );
-      const userArray = usersInProject.map((item) => item.user.id);
-      const usersToAdd = userIds.filter(
-        (id: number) => !userArray.includes(id)
-      );
-
-      if (usersToAdd.length === 0) {
-        throw new BadRequest("User already in project");
+      if (!checkRoleAccess(user, ["admin"])) {
+        throw new BadRequest("Not authorized to perform this action");
       }
+      if (!userIds.length) throw new BadRequest("User not found");
+      await userProjectService.deleteProjectUser(projectId);
 
-      for (const user of usersToAdd) {
+      for (const user of userIds) {
         const userProjectAdd = await UserProject.create({
-          user: { id: user },
+          user: { id: +user },
           project: { id: +projectId },
         });
         await userProjectService.create(userProjectAdd);
       }
 
-      return ApiResponse.successResponse(res, usersToAdd);
-    } catch (error) {
-      return next(error);
-    }
-  }
-  async deleteUserToProject(
-    req: Request | any,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const user = req.user;
-      const { projectId, userIds } = req.body;
-
-      for (const userId of userIds) {
-        await userProjectService.delete(+projectId, +userId);
-      }
-
-      return ApiResponse.successResponse(res, { message: "User deleted" });
+      return ApiResponse.successResponse(res, {
+        message: "User added successfully",
+      });
     } catch (error) {
       return next(error);
     }
@@ -193,6 +179,12 @@ class ProjectsController {
       } = req.body;
       const user = req.user;
       let apkFile = req.files?.apkFile as UploadedFile;
+      if (!apkFile) throw new Error("Apk file is required");
+      //check file type .apk, .apkm, etc
+      if (!apkFile.name.match(/\.(apk|apkm)$/i)) {
+        throw new BadRequest("Invalid file type. Only apk or apkm allowed");
+      }
+
       let liveUrl = "";
       const project = await projectsService.getProjectById(+projectId);
       if (!project) {
@@ -322,8 +314,8 @@ class ProjectsController {
         {
           query: query?.toString(),
           currentPage: currentPage?.toString() || "1",
-          sortBy: sortBy?.toString(),
-          sortOrder: sortOrder?.toString(),
+          sortBy: sortBy?.toString() || "createdAt",
+          sortOrder: sortOrder?.toString() || "DESC",
         }
       );
       return ApiResponse.successResponse(res, bugs);
@@ -344,24 +336,123 @@ class ProjectsController {
 
   async updateBugDetail(req: Request | any, res: Response, next: NextFunction) {
     try {
-      const { bugId } = req.params;
       const { id, title, description, status, priority, type, assignedTo } =
         req.body;
       const newAssignedTo = JSON.parse(assignedTo);
-      console.log(
-        id,
+      const bug = await bugService.getBugById(+id);
+      if (!bug) throw new BadRequest("Bug not found");
+
+      bug.title = title;
+      bug.description = description;
+      bug.status = status;
+      bug.priority = priority;
+      bug.type = type;
+
+      // remove all assignedTo
+      bug.assignedTo = [];
+      // add new assignedTo
+      newAssignedTo.forEach((user: User) => {
+        bug.assignedTo.push(user);
+      });
+
+      await bugService.updateBug(bug);
+      return ApiResponse.successResponse(res, bug);
+    } catch (error) {
+      console.log("error", error);
+      return next(error);
+    }
+  }
+
+  async deleteVersion(req: Request | any, res: Response, next: NextFunction) {
+    const user = req.user;
+    const { versionId } = req.params;
+    try {
+      const getVersion = await versionService.getVersionById(+versionId);
+      if (!getVersion) {
+        throw new BadRequest("Version not found");
+      }
+      await deleteFile(getVersion.liveUrl);
+      await versionService.delete(getVersion);
+      return ApiResponse.successResponse(res, { message: "Version deleted" });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async updateProject(req: Request | any, res: Response, next: NextFunction) {
+    try {
+      const { projectId } = req.params;
+      const {
         title,
         description,
+        appId,
+        appUrl,
+        appIcon,
+        developer,
+        developerId,
+        developerEmail,
+        firebaseAccount,
+        privacyPolicyUrl,
         status,
-        priority,
-        type,
-        newAssignedTo
-      );
-      console.log(req.files);
-      console.log(req.images);
-      // console.log(body);
-      // await bugService.update(bug);
-      return ApiResponse.successResponse(res, req.body);
+        appType,
+      } = req.body;
+      const project = await projectsService.getProjectById(+projectId);
+      if (!project) {
+        throw new BadRequest("Project not found");
+      }
+      if (req.files?.appIcon as UploadedFile) {
+        await deleteFile(project.appIcon);
+        const file = req.files?.appIcon as UploadedFile;
+        project.appIcon = await fileUploader(file, "project/icon");
+      }
+      project.title = title || project.title;
+      project.description = description || project.description;
+      project.appId = appId || project.appId;
+      project.appUrl = appUrl || project.appUrl;
+      project.appIcon = appIcon || project.appIcon;
+      project.developer = developer || project.developer;
+      project.developerId = developerId || project.developerId;
+      project.developerEmail = developerEmail || project.developerEmail;
+      project.firebaseAccount = firebaseAccount || project.firebaseAccount;
+      project.privacyPolicyUrl = privacyPolicyUrl || project.privacyPolicyUrl;
+      project.status = status || project.status;
+      project.appType = appType || project.appType;
+
+      await projectsService.createOrUpdateProject(project);
+      return ApiResponse.successResponse(res, project);
+    } catch (error) {
+      return next(error);
+    }
+  }
+  async deleteBugImage(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { ImageId } = req.params;
+      const bugImage = await bugService.getImageById(+ImageId);
+      if (!bugImage) throw new BadRequest("Image not found");
+      await deleteFile(ImageId);
+      await bugService.deleteBugImage(bugImage);
+      return ApiResponse.successResponse(res, { message: "Image deleted" });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async addImageToBug(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { bugId } = req.params;
+      const bug = await bugService.getBugById(+bugId);
+      if (!bug) throw new BadRequest("Bug not found");
+      if (req.files?.images as UploadedFile) {
+        const file = req.files?.images as UploadedFile;
+        const src = await fileUploader(file, "project/bug/image");
+        const bugImage = BugImage.create({
+          bug,
+          src,
+        });
+        await bugService.createBugImage(bugImage);
+        const newBugImage = await bugService.getImageById(bugImage.id);
+        return ApiResponse.successResponse(res, newBugImage);
+      } else throw new BadRequest("No image provided");
     } catch (error) {
       return next(error);
     }

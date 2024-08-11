@@ -16,7 +16,7 @@ import { UserProject } from "./userProject.entity";
 import { Bug } from "./bug.entity";
 import { PinnedProject } from "./pinnedProject.entity";
 import { DailyStats } from "./dailyStats.entity";
-import { projectStatus } from "../utils/types";
+import { appType, projectStatus } from "../utils/types";
 import { SERVER_URL } from "../utils/constant";
 
 @Entity()
@@ -75,8 +75,14 @@ export class Project extends BaseEntity {
   @Column({ nullable: true })
   privacyPolicyUrl: string;
 
+  @Column({ nullable: true })
+  repositoryUrl: string;
+
   @Column({ nullable: true, default: "inreview" })
   status: projectStatus;
+
+  @Column({ nullable: false, default: "google" })
+  appType: appType;
 
   @ManyToOne(() => User, (user) => user.projects)
   createdBy: User;

@@ -30,6 +30,20 @@ const suggestApps = async (term) => {
   }
 };
 
+const getTopApps = async () => {
+  try {
+    const results = await play.list({
+      category: play.category.APPLICATION,
+      collection: play.collection.GROSSING,
+      num: 250,
+    });
+    console.log(JSON.stringify(results));
+  } catch (error) {
+    console.error(JSON.stringify({ error: error.message }));
+    process.exit(1);
+  }
+};
+
 const [type, value] = process.argv.slice(2);
 
 if (!type || !value) {
@@ -53,6 +67,13 @@ if (type === "app") {
     });
 } else if (type === "suggest") {
   suggestApps(value)
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(JSON.stringify({ error: error.message }));
+      process.exit(1);
+    });
+} else if (type === "TOP_APP") {
+  getTopApps()
     .then(() => process.exit(0))
     .catch((error) => {
       console.error(JSON.stringify({ error: error.message }));

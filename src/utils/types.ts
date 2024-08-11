@@ -9,6 +9,7 @@ export type RequestError = Error & {
 export type dbType = "mysql" | "postgres";
 
 export type userStatus = "active" | "inactive";
+export type appType = "google" | "apple" | "web";
 
 export type projectStatus = "complete" | "inprogress" | "onhold" | "inreview";
 

@@ -32,6 +32,9 @@ class UserProjectService {
     });
     return projectCount;
   }
+  async deleteProjectUser(projectId: number) {
+    await UserProject.delete({ project: { id: projectId } });
+  }
 }
 
 export default new UserProjectService();

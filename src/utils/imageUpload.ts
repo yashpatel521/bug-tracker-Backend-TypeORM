@@ -26,3 +26,19 @@ export const fileUploader = async (
     throw new Error("File upload failed");
   }
 };
+
+export const deleteFile = async (filePath: string): Promise<void> => {
+  try {
+    // remove http or https from file path if exists
+    if (filePath.startsWith("https://") || filePath.startsWith("http://")) {
+      filePath = filePath.replace(/^(https?:\/\/)?/, "").split("/")[1];
+    }
+    if (!fs.existsSync(filePath)) {
+      return; // file does not exist, do nothing
+    } else {
+      await fs.promises.unlink(filePath);
+    }
+  } catch (error) {
+    throw new Error("File deletion failed");
+  }
+};

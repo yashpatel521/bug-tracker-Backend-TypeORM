@@ -4,17 +4,11 @@ import { Project } from "../entity/project.entity";
 import { User } from "../entity/user.entity";
 import { UserProject } from "../entity/userProject.entity";
 import { checkRoleAccess } from "../utils/commonFunction";
-import { AppDetails } from "../utils/types";
 import { getAppDetails } from "./googlePlay.service";
 
 class ProjectService {
   async createOrUpdateProject(project: Project) {
     const result = await Project.save(project);
-    return result;
-  }
-
-  async createUserProject(userProject: UserProject) {
-    const result = await UserProject.save(userProject);
     return result;
   }
 
@@ -39,6 +33,20 @@ class ProjectService {
   async getDailyStatsByDate(projectId: number, date: Date) {
     const result = await DailyStats.findOne({
       where: { project: { id: projectId }, date },
+    });
+    return result;
+  }
+
+  async getProjectById(projectId: number): Promise<Project | null> {
+    const result = await Project.findOne({
+      where: { id: projectId },
+    });
+    return result;
+  }
+
+  async getProjectByAppId(appId: string): Promise<Project | null> {
+    const result = await Project.findOne({
+      where: { appId },
     });
     return result;
   }
@@ -193,12 +201,6 @@ class ProjectService {
     };
   }
 
-  async getProjectById(projectId: number): Promise<Project | null> {
-    const result = await Project.findOne({
-      where: { id: projectId },
-    });
-    return result;
-  }
   async getProjectByIdWithDetails(projectId: number, userId: number) {
     const projectRepository = myDataSource.getRepository(Project);
 
@@ -265,28 +267,26 @@ class ProjectService {
     let queryBuilder = projectRepository
       .createQueryBuilder("project")
       .select("project.status", "status")
-      .addSelect("COUNT(project.id)", "count")
-      .leftJoin("project.userProjects", "userProject");
+      .addSelect("COUNT(project.id)", "count");
 
     if (!checkRoleAccess(user, ["admin"])) {
-      queryBuilder = queryBuilder.where("userProject.userId = :userId", {
-        userId: user.id,
-      });
+      queryBuilder = queryBuilder
+        .leftJoin("project.userProjects", "userProject")
+        .where("userProject.userId = :userId", {
+          userId: user.id,
+        });
     }
 
     const projectStatusCounts = await queryBuilder
       .groupBy("project.status")
       .getRawMany();
 
-    // Initialize the formattedResult object with all possible statuses set to zero
     const formattedResult: { [key: string]: number } = {
       complete: 0,
       inprogress: 0,
       onhold: 0,
       inreview: 0,
     };
-    console.log(projectStatusCounts);
-    // Populate the formattedResult object with actual counts
     projectStatusCounts.forEach((curr) => {
       formattedResult[curr.status] = parseInt(curr.count, 10);
     });
