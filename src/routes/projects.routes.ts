@@ -25,16 +25,13 @@ router.post("/togglePin/:projectId", Auth, projectsController.tooglePin);
 
 //Bugs
 router.get("/bugs/:bugId", Auth, projectsController.getBugDetail);
+router.post("/bugs", Auth, projectsController.createBug);
 router.post("/bugs/update", Auth, projectsController.updateBugDetail);
 router.post("/bugs/image/:bugId", Auth, projectsController.addImageToBug);
 router.delete("/bugs/image/:ImageId", Auth, projectsController.deleteBugImage);
 
 //Versions
-router.get(
-  "/getLastVersionNumber/:projectId",
-  Auth,
-  projectsController.getLastVersionNumber
-);
+router.get("/getVersions/:projectId", Auth, projectsController.getVersions);
 router.delete("/version/:versionId", Auth, projectsController.deleteVersion);
 router.post(
   "/addVersionToProject",

@@ -15,6 +15,7 @@ import { Project } from "../entity/project.entity";
 import bugService from "../services/bug.service";
 import { User } from "../entity/user.entity";
 import { BugImage } from "../entity/bugImage.entity";
+import { Bug } from "../entity/bug.entity";
 
 class ProjectsController {
   async createProject(req: Request | any, res: Response, next: NextFunction) {
@@ -217,18 +218,14 @@ class ProjectsController {
     }
   }
 
-  async getLastVersionNumber(
-    req: Request | any,
-    res: Response,
-    next: NextFunction
-  ) {
+  async getVersions(req: Request | any, res: Response, next: NextFunction) {
     try {
       const { projectId } = req.params;
       const project = await projectsService.getProjectById(+projectId);
       if (!project) {
         throw new BadRequest("Project not found");
       }
-      const lastVersion = await versionService.getLastVersionNumber(+projectId);
+      const lastVersion = await versionService.getVersions(+projectId);
       return ApiResponse.successResponse(res, lastVersion);
     } catch (error) {
       return next(error);
@@ -454,6 +451,64 @@ class ProjectsController {
         return ApiResponse.successResponse(res, newBugImage);
       } else throw new BadRequest("No image provided");
     } catch (error) {
+      return next(error);
+    }
+  }
+  async createBug(req: Request | any, res: Response, next: NextFunction) {
+    try {
+      const user = req.user;
+      const {
+        title,
+        description,
+        status,
+        priority,
+        type,
+        assignedTo,
+        versionId,
+        projectId,
+      } = req.body;
+      if (
+        !versionId ||
+        !projectId ||
+        !title ||
+        !description ||
+        !status ||
+        !priority ||
+        !type
+      ) {
+        throw new BadRequest("Fields are Missing or Invalid");
+      }
+
+      const version = await versionService.getVersionById(+versionId);
+      if (!version) throw new BadRequest("version not found");
+      const project = await projectsService.getProjectById(+projectId);
+      if (!project) throw new BadRequest("Project not found");
+
+      const newAssignedTo = JSON.parse(assignedTo);
+      const bug = Bug.create({
+        title,
+        description,
+        status,
+        priority,
+        type,
+        reportedBy: user,
+        assignedTo: newAssignedTo,
+        version,
+        project,
+      });
+      if (req.files?.images as UploadedFile) {
+        const file = req.files?.images as UploadedFile;
+        const src = await fileUploader(file, "project/bug/image");
+        const bugImage = BugImage.create({
+          bug,
+          src,
+        });
+        await bugService.createBugImage(bugImage);
+      }
+      const newBug = await bugService.createBug(bug);
+      return ApiResponse.successResponse(res, newBug);
+    } catch (error) {
+      console.log("error", error);
       return next(error);
     }
   }

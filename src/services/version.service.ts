@@ -13,11 +13,9 @@ class VesrionService {
     });
     return result;
   }
-
-  async getLastVersionNumber(projectId: number) {
-    const result = await Version.findOne({
+  async getVersions(projectId: number) {
+    const result = await Version.find({
       where: { project: { id: projectId } },
-      order: { versionNumber: "DESC" },
     });
     return result;
   }

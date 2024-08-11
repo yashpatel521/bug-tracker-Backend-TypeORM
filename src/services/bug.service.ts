@@ -89,6 +89,11 @@ class BugService {
     const result = await BugImage.save(bugImage);
     return result;
   }
+
+  async createBug(bug: Bug) {
+    const result = await Bug.save(bug);
+    return result;
+  }
 }
 
 export default new BugService();
