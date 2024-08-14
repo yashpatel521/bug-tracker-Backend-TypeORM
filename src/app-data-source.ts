@@ -1,5 +1,5 @@
 import { DataSource } from "typeorm";
-import { config } from "./types/constant";
+import { config } from "./utils/constant";
 
 const myDataSource = new DataSource({
   ...config,

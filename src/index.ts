@@ -3,35 +3,44 @@ import { pagination } from "typeorm-pagination";
 import myDataSource from "./app-data-source";
 import Middleware from "./middlewares/Middleware";
 import cors from "cors";
-
+import bodyParser from "body-parser";
+import fileUpload from "express-fileupload";
 const app = express();
-app.use(Middleware.requestLogs);
+// app.use(Middleware.requestLogs);
 
-// CORS configuration
-const corsOptions = {
-  origin: "http://localhost:3000", // Allow requests from your frontend domain
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  allowedHeaders: ["Content-Type", "Authorization"], // Include Authorization header
-};
+app.use(cors());
+app.use(
+  fileUpload({
+    createParentPath: true,
+  })
+);
+// Use body-parser middleware for JSON payloads
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(cors(corsOptions));
-
-//Import routes files
+// Import routes files
 import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
-import { RequestError } from "./types/types";
-import { PORT } from "./types/constant";
-import { insertRolesAndSubRoles } from "./seed/seed";
+import subRoleRoutes from "./routes/subRole.routes";
+import googlePlayRoutes from "./routes/googlePlay.routes";
+import projectsRoutes from "./routes/projects.routes";
+import { RequestError } from "./utils/types";
+import { getLocalIpAddress, PORT } from "./utils/constant";
 
-// create and setup express app
-app.use(express.json());
+// Additional middlewares
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "10mb" }));
 app.use(pagination);
 
-//Routes are mention here
+// Allow uploads folder to be processed as static
+app.use("/uploads", express.static("uploads"));
+
+// Routes are mentioned here
 app.use("/users", userRoutes);
 app.use("/roles", roleRoutes);
+app.use("/subRoles", subRoleRoutes);
+app.use("/projects", projectsRoutes);
+app.use("/liveTrack", googlePlayRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({
@@ -39,21 +48,32 @@ app.get("/", (req: Request, res: Response) => {
   });
 });
 
+// Error handling middleware
 app.use(
-  (err: RequestError, _req: Request, res: Response, _next: NextFunction) => {
-    console.error(err);
-    res
-      .status(err.code || 500)
-      .json({ name: err.name, message: err.message, stack: err.stack });
+  (err: RequestError, _req: Request, res: Response, next: NextFunction) => {
+    let statusCode = err.code || 500;
+    // if (err.code.toString() === "23505") {
+    //   statusCode = 409; // Conflict
+    // }
+    return res.status(statusCode).json({
+      success: false,
+      name: err.name,
+      message: err.message,
+      data: err.stack,
+    });
   }
 );
 
-// start express server
+// Start express server
 myDataSource
   .initialize()
-  .then(async () => {
-    app.listen(PORT, async () => {
-      console.log(`CONNECTED TO DB AND SERVER STARTED ON PORT - ${PORT}`);
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(
+        `CONNECTED TO DB AND SERVER STARTED ON PORT - ${PORT}\n ${getLocalIpAddress()}`
+      );
     });
   })
-  .catch((error) => console.log(error));
+  .catch((error) => {
+    console.error("Error during Data Source initialization:", error);
+  });

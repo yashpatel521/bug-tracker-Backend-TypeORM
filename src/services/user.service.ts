@@ -1,11 +1,16 @@
 import { User } from "../entity/user.entity";
 import myDataSource from "../app-data-source";
+import userProjectService from "./userProject.service";
 
 class UserService {
-  async findById(id: number) {
+  async findById(id: number): Promise<User | null> {
     return await User.findOne({
       where: { id },
     });
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await User.find();
   }
   async create(user: User) {
     const result = await User.save(user);
@@ -27,8 +32,10 @@ class UserService {
     return existingUser;
   }
 
-  // Assuming dataSource is an instance of DataSource and is already initialized
-  // This instance should be accessible in the context of this function
+  async updateUser(user: User) {
+    const result = await this.create(user);
+    return result;
+  }
 
   async findAll(params: {
     query?: string;
@@ -37,7 +44,6 @@ class UserService {
     sortOrder?: string;
   }) {
     const { query, currentPage, sortBy, sortOrder } = params;
-    console.log(query, currentPage, sortBy, sortOrder);
     const pageSize = 5;
     const pageNumber = parseInt(currentPage, 10) || 1;
 
@@ -48,11 +54,11 @@ class UserService {
       .leftJoinAndSelect("user.subRole", "subRole");
 
     if (query) {
-      queryBuilder = queryBuilder.where("Lower(user.firstName) LIKE :query", {
-        query: `%${query.toLocaleLowerCase()}%`,
+      queryBuilder = queryBuilder.where("LOWER(user.firstName) LIKE :query", {
+        query: `%${query.toLowerCase()}%`,
       });
-      queryBuilder = queryBuilder.orWhere("Lower(user.lastName) LIKE :query", {
-        query: `%${query.toLocaleLowerCase()}%`,
+      queryBuilder = queryBuilder.orWhere("LOWER(user.lastName) LIKE :query", {
+        query: `%${query.toLowerCase()}%`,
       });
     }
 
@@ -64,61 +70,61 @@ class UserService {
     }
 
     const [users, totalUsersCount] = await queryBuilder
-
       .skip((pageNumber - 1) * pageSize)
       .take(pageSize)
       .getManyAndCount();
 
+    const usersWithProjectCount = await Promise.all(
+      users.map(async (user) => {
+        const projectAssigned =
+          await userProjectService.getProjectCountByUserId(user.id);
+        return { ...user, projectAssigned };
+      })
+    );
+
     return {
-      users,
+      users: usersWithProjectCount,
       total: totalUsersCount,
       currentPage: pageNumber,
       totalPages: Math.ceil(totalUsersCount / pageSize),
     };
   }
 
-  //   async findOrCreate(user: User) {
-  //     let result = await this.findByPhoneNumber(user.phoneNumber);
-  //     if (!result) {
-  //       result = await user.save();
-  //     }
-  //     return result;
-  //   }
+  async getProfile(id: number) {
+    let queryBuilder = myDataSource
+      .getRepository(User)
+      .createQueryBuilder("user")
+      .leftJoin("user.projects", "project")
+      .leftJoin("user.versions", "version")
+      .leftJoin("user.pinnedProjects", "pinnedProject")
+      .leftJoin("user.reportedBugs", "reportedBug")
+      .addSelect("COUNT(DISTINCT project.id)", "projectCount")
+      .addSelect("COUNT(DISTINCT version.id)", "versionCount")
+      .addSelect("COUNT(DISTINCT pinnedProject.id)", "pinnedProjectCount")
+      .addSelect("COUNT(DISTINCT reportedBug.id)", "reportedBugCount")
+      .leftJoinAndSelect("user.role", "role")
+      .leftJoinAndSelect("user.subRole", "subRole")
+      .where("user.id = :id", { id })
+      .groupBy("user.id")
+      .addGroupBy("role.id")
+      .addGroupBy("subRole.id");
 
-  //   async findByPhoneNumber(phoneNumber: string) {
-  //     const user = await User.findOne({ where: { phoneNumber } });
-  //     return user;
-  //   }
+    const rawResult = await queryBuilder.getRawAndEntities();
+    const user = rawResult.entities[0];
+    const rawCounts = rawResult.raw[0];
 
-  //   async findAllFiltered(filter: FilteredUser) {
-  //     let user: SelectQueryBuilder<User> | PaginationAwareObject = getRepository(
-  //       User
-  //     )
-  //       .createQueryBuilder("user")
-  //       .leftJoinAndSelect("user.role", "role");
-
-  //     if (filter.ids && filter.ids.length) {
-  //       user = user.andWhere("id IN :ids", { ids: filter.ids });
-  //     }
-
-  //     if (filter.name) {
-  //       user = user.andWhere("name LIKE :name", { name: `%${filter.name}%` });
-  //     }
-
-  //     if (filter.phoneNumber) {
-  //       user = user.andWhere("user.phoneNumber LIKE :number", {
-  //         number: `%${filter.phoneNumber}%`,
-  //       });
-  //     }
-
-  //     if (filter.role) {
-  //       user = user.andWhere("role.name = :role", { role: filter.role });
-  //     }
-
-  //     user = await user.paginate();
-
-  //     return user;
-  //   }
+    return {
+      ...user,
+      projectCount: parseInt(rawCounts.projectCount, 10),
+      versionCount: parseInt(rawCounts.versionCount, 10),
+      pinnedProjectCount: parseInt(rawCounts.pinnedProjectCount, 10),
+      reportedBugCount: parseInt(rawCounts.reportedBugCount, 10),
+    };
+  }
+  async updateProfile(user: User) {
+    await User.save(user);
+    return user;
+  }
 }
 
 export default new UserService();
