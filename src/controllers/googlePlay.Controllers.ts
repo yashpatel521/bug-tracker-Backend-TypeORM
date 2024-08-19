@@ -14,6 +14,7 @@ import projectService from "../services/projects.service";
 import { User } from "../entity/user.entity";
 import userProjectService from "../services/userProject.service";
 import { UserProject } from "../entity/userProject.entity";
+import { getAppDetailsFromAppStore } from "../services/appStore.service";
 
 export const getAppInfo = async (
   req: Request,
@@ -23,7 +24,13 @@ export const getAppInfo = async (
   const { appId } = req.params;
 
   try {
-    const appDetails: AppDetails = await getAppDetails(appId);
+    // check appId is numeric
+    let appDetails: AppDetails;
+    if (Number.isInteger(+appId)) {
+      appDetails = await getAppDetailsFromAppStore(appId);
+    } else {
+      appDetails = await getAppDetails(appId);
+    }
     if (!appDetails) throw new BadRequest("App not found", 404);
 
     return ApiResponse.successResponse(res, appDetails);
