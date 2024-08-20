@@ -4,6 +4,7 @@ import { Project } from "../entity/project.entity";
 import { User } from "../entity/user.entity";
 import { UserProject } from "../entity/userProject.entity";
 import { checkRoleAccess } from "../utils/commonFunction";
+import { getAppDetailsFromAppStore } from "./appStore.service";
 import { getAppDetails } from "./googlePlay.service";
 
 class ProjectService {
@@ -52,7 +53,12 @@ class ProjectService {
   }
 
   async addDailyStatsAndUpdateProject(project: Project) {
-    const appDetails: Project = await getAppDetails(project.appId);
+    let appDetails: Project;
+    if (project.appType == "apple") {
+      appDetails = await getAppDetailsFromAppStore(project.appId);
+    } else {
+      appDetails = await getAppDetails(project.appId);
+    }
     if (!appDetails) return;
     //check todays stats exist or not
     const checkTodayDailyStatsExists = await this.getDailyStatsByDate(

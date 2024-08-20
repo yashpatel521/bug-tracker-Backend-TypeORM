@@ -1,12 +1,13 @@
 import { exec } from "child_process";
 import path from "path";
-import { AppDetails } from "../utils/types";
+
+import { AppleDataType } from "../utils/types";
 
 const executeScript = async (type: string, value: string): Promise<any> => {
   return new Promise((resolve, reject) => {
     const scraperScriptPath = path.resolve(
       __dirname,
-      "../../scripts/googlePlayScraper.mjs"
+      "../../scripts/appStoreScraper.mjs"
     );
     const command = `node --experimental-modules "${scraperScriptPath}" ${type} "${value}"`;
 
@@ -36,49 +37,38 @@ const executeScript = async (type: string, value: string): Promise<any> => {
   });
 };
 
-export const getAppDetails = async (appId: string): Promise<any> => {
+export const getAppDetailsFromAppStore = async (
+  appId: string
+): Promise<any> => {
   try {
-    const appDetails: AppDetails = await executeScript("app", appId);
+    const appDetails: AppleDataType = await executeScript("app", appId);
     if (typeof appDetails === "string") return null;
     const res = {
       title: appDetails.title,
-      summary: appDetails.summary,
+      summary: appDetails.releaseNotes,
       score: appDetails.score,
-      scoreText: appDetails.scoreText,
+      scoreText: appDetails.score.toFixed(1).toString(),
       description: appDetails.description,
-      descriptionHTML: appDetails.descriptionHTML,
+      descriptionHTML: appDetails.description,
       appId: appDetails.appId,
       appUrl: appDetails.url,
       appIcon: appDetails.icon,
       developer: appDetails.developer,
       developerId: appDetails.developerId,
-      developerEmail: appDetails.developerEmail,
+      developerEmail: appDetails.developer,
       firebaseAccount: "",
-      privacyPolicyUrl: appDetails.privacyPolicy,
+      privacyPolicyUrl: appDetails.developerWebsite,
       status: "inprogress",
       LiveUpdatedAt: new Date(appDetails.updated),
-      maxInstalls: appDetails.maxInstalls,
+      maxInstalls: appDetails.ratings,
       ratings: appDetails.ratings,
       reviews: appDetails.reviews,
-      type: "google",
       createdAt: new Date(),
+      type: "apple",
       updatedAt: new Date(),
     };
     return res;
   } catch (err) {
     console.log(err);
   }
-};
-
-export const searchApps = async (term: string): Promise<any> => {
-  const searchResults: any = await executeScript("search", term);
-  return searchResults;
-};
-
-export const suggestApps = (term: string): Promise<any> => {
-  return executeScript("suggest", term);
-};
-
-export const getTopApps = (): Promise<any> => {
-  return executeScript("TOP_APP", "temp");
 };

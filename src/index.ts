@@ -6,7 +6,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import fileUpload from "express-fileupload";
 const app = express();
-// app.use(Middleware.requestLogs);
+app.use(Middleware.requestLogs);
 
 app.use(cors());
 app.use(
