@@ -226,22 +226,17 @@ class UserController {
 
   async providersAuth(req: Request, res: Response, next: NextFunction) {
     try {
-      const bodyData = req.body;
+      const { email, name, profile, githubId } = req.body;
 
-      const providerType = bodyData.providerType;
-      if (!providerType) throw new BadRequest("Missing providerType", 400);
-      if (providerType == "github") {
-        //check if github is available
-        const providerId = bodyData.id;
-        const githubUser = await userService.getUserByGithubId(providerId);
-        if (githubUser) {
-          const filteredData: DeepPartial<User> = githubUser;
-          const jwt = getJwt(githubUser);
-          const data = {
-            ...jwt,
-            user: filteredData,
-          };
-          return ApiResponse.successResponse(res, data);
+      let user: User | null;
+      user = await userService.findByEmail(email);
+
+      if (githubId) {
+        // check email exist connect to that  user
+        if (user) {
+          user.githubId = +githubId as number;
+          user.profile = profile as string;
+          user = await userService.updateProfile(user);
         } else {
           // return new created user
           const role = await roleService.getRoleByName("employee");
@@ -249,19 +244,25 @@ class UserController {
           const subRole = await subRoleService.getSubRoleByName("developer");
           if (!subRole) throw new BadRequest("Sub Role not found", 400);
           let user = User.create({
-            firstName: bodyData.name.split(" ")[0] as string,
-            lastName: bodyData.name.split(" ")[1] as string,
+            firstName: name.split(" ")[0] as string,
+            lastName: name.split(" ")[1] as string,
             role,
             subRole,
-            email: bodyData.email as string,
+            email: email as string,
             status: "active" as userStatus,
-            profile: bodyData.avatar_url as string,
-            githubId: +bodyData.id as number,
+            profile: profile as string,
+            githubId: +githubId as number,
           });
           user = await userService.create(user);
-          return ApiResponse.successResponse(res, user);
         }
       }
+      if (!user) throw new BadRequest("Invalid provider type", 400);
+      const jwt = getJwt(user);
+      const data = {
+        ...jwt,
+        user,
+      };
+      return ApiResponse.successResponse(res, data);
     } catch (error) {
       console.log(error);
       return next(error);
