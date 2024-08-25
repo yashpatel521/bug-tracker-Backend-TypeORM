@@ -11,6 +11,7 @@ import { checkRoleAccess, getJwt } from "../utils/commonFunction";
 import subRoleService from "../services/subRole.service";
 import { deleteFile, fileUploader } from "../utils/imageUpload";
 import { UploadedFile } from "express-fileupload";
+import { userStatus } from "../utils/types";
 
 class UserController {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -219,6 +220,50 @@ class UserController {
       const newUpdateUser = await userService.updateProfile(updateUser);
       return ApiResponse.successResponse(res, newUpdateUser);
     } catch (error) {
+      return next(error);
+    }
+  }
+
+  async providersAuth(req: Request, res: Response, next: NextFunction) {
+    try {
+      const bodyData = req.body;
+
+      const providerType = bodyData.providerType;
+      if (!providerType) throw new BadRequest("Missing providerType", 400);
+      if (providerType == "github") {
+        //check if github is available
+        const providerId = bodyData.id;
+        const githubUser = await userService.getUserByGithubId(providerId);
+        if (githubUser) {
+          const filteredData: DeepPartial<User> = githubUser;
+          const jwt = getJwt(githubUser);
+          const data = {
+            ...jwt,
+            user: filteredData,
+          };
+          return ApiResponse.successResponse(res, data);
+        } else {
+          // return new created user
+          const role = await roleService.getRoleByName("employee");
+          if (!role) throw new BadRequest("Role not found", 400);
+          const subRole = await subRoleService.getSubRoleByName("developer");
+          if (!subRole) throw new BadRequest("Sub Role not found", 400);
+          let user = User.create({
+            firstName: bodyData.name.split(" ")[0] as string,
+            lastName: bodyData.name.split(" ")[1] as string,
+            role,
+            subRole,
+            email: bodyData.email as string,
+            status: "active" as userStatus,
+            profile: bodyData.avatar_url as string,
+            githubId: +bodyData.id as number,
+          });
+          user = await userService.create(user);
+          return ApiResponse.successResponse(res, user);
+        }
+      }
+    } catch (error) {
+      console.log(error);
       return next(error);
     }
   }

@@ -39,8 +39,11 @@ export class User extends BaseEntity {
   @Column({ default: "https://github.com/shadcn.png" })
   profile: string;
 
-  @Column()
+  @Column({ nullable: true })
   password: string;
+
+  @Column({ default: 0, nullable: true })
+  githubId: number;
 
   @Column({ default: "active" })
   status: userStatus;
@@ -77,7 +80,9 @@ export class User extends BaseEntity {
 
   @BeforeInsert()
   async hashPassword() {
-    this.password = await bcrypt.hash(this.password, 12);
+    if (this.password) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
   }
 
   @AfterLoad()

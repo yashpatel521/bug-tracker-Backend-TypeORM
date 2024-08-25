@@ -12,4 +12,6 @@ router.get("/profile/:id", Auth, userController.profile);
 router.post("/passwordChange", Auth, userController.passwordChange);
 router.post("/updateProfile", Auth, userController.updateProfile);
 
+router.post("/providersAuth", userController.providersAuth);
+
 export default router;

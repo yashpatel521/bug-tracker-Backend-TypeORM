@@ -125,6 +125,13 @@ class UserService {
     await User.save(user);
     return user;
   }
+
+  async getUserByGithubId(githubId: number) {
+    const result = await User.findOne({
+      where: { githubId },
+    });
+    return result;
+  }
 }
 
 export default new UserService();
