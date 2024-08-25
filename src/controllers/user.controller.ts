@@ -226,7 +226,7 @@ class UserController {
 
   async providersAuth(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, name, profile, githubId } = req.body;
+      const { email, name, profile, githubId, googleId } = req.body;
 
       let user: User | null;
       user = await userService.findByEmail(email);
@@ -252,6 +252,30 @@ class UserController {
             status: "active" as userStatus,
             profile: profile as string,
             githubId: +githubId as number,
+          });
+          user = await userService.create(user);
+        }
+      } else if (googleId) {
+        // check email exist connect to that  user
+        if (user) {
+          user.googleId = googleId.toString() as string;
+          user.profile = profile as string;
+          user = await userService.updateProfile(user);
+        } else {
+          // return new created user
+          const role = await roleService.getRoleByName("employee");
+          if (!role) throw new BadRequest("Role not found", 400);
+          const subRole = await subRoleService.getSubRoleByName("developer");
+          if (!subRole) throw new BadRequest("Sub Role not found", 400);
+          let user = User.create({
+            firstName: name.split(" ")[0] as string,
+            lastName: name.split(" ")[1] as string,
+            role,
+            subRole,
+            email: email as string,
+            status: "active" as userStatus,
+            profile: profile as string,
+            googleId: googleId.toString() as string,
           });
           user = await userService.create(user);
         }

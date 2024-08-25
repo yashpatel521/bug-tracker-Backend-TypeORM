@@ -45,6 +45,9 @@ export class User extends BaseEntity {
   @Column({ default: 0, nullable: true })
   githubId: number;
 
+  @Column({ default: 0, nullable: true })
+  googleId: string;
+
   @Column({ default: "active" })
   status: userStatus;
 
