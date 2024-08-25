@@ -3,7 +3,7 @@ import { DailyStats } from "../entity/dailyStats.entity";
 import { Project } from "../entity/project.entity";
 import { User } from "../entity/user.entity";
 import { UserProject } from "../entity/userProject.entity";
-import { checkRoleAccess } from "../utils/commonFunction";
+import { checkRoleAccess, getDaysBetweenDates } from "../utils/commonFunction";
 import { getAppDetailsFromAppStore } from "./appStore.service";
 import { getAppDetails } from "./googlePlay.service";
 
@@ -25,6 +25,14 @@ class ProjectService {
 
   async getDailyStatsByProjectId(projectId: number) {
     const result = await DailyStats.find({
+      where: { project: { id: projectId } },
+      order: { date: "DESC" },
+    });
+    return result;
+  }
+
+  async getLastDailyStatsByProjectId(projectId: number) {
+    const result = await DailyStats.findOne({
       where: { project: { id: projectId } },
       order: { date: "DESC" },
     });
@@ -97,31 +105,67 @@ class ProjectService {
       let installCount = appDetails.maxInstalls,
         ratingCount = appDetails.ratings,
         reviewCount = appDetails.reviews;
-      const getYestredayDailyStats = await this.getDailyStatsByDate(
-        project.id,
-        new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
-      );
-      if (getYestredayDailyStats) {
-        installCount =
-          appDetails.maxInstalls - getYestredayDailyStats.maxInstallCount;
-        ratingCount =
-          appDetails.ratings - getYestredayDailyStats.maxRatingCount;
-        reviewCount =
-          appDetails.reviews - getYestredayDailyStats.maxReviewCount;
-      }
 
-      const dailyStats = DailyStats.create({
-        project,
-        installCount,
-        ratingCount,
-        reviewCount,
-        maxInstallCount: appDetails.maxInstalls,
-        maxRatingCount: appDetails.ratings,
-        maxReviewCount: appDetails.reviews,
-        date: new Date(),
-        updatedAt: new Date(),
-      });
-      await this.createDailyStats(dailyStats);
+      // add the missing dates to the current stats data
+      const lastDailyStats = await this.getLastDailyStatsByProjectId(
+        project.id
+      );
+      if (lastDailyStats && lastDailyStats.date != new Date()) {
+        const totalDaysMissing = getDaysBetweenDates(
+          lastDailyStats.date,
+          new Date()
+        );
+        const averageInstallCount = Math.floor(installCount / totalDaysMissing);
+        const averageRatingCount = Math.floor(ratingCount / totalDaysMissing);
+        const averageReviewCount = Math.floor(reviewCount / totalDaysMissing);
+        for (let i = totalDaysMissing - 1; i >= 0; i--) {
+          const maxInstallCount =
+            +lastDailyStats.maxInstallCount * i - +averageInstallCount;
+          const maxRatingCount =
+            +lastDailyStats.maxRatingCount * i - +averageRatingCount;
+          const maxReviewCount =
+            +lastDailyStats.maxReviewCount * i - +averageReviewCount;
+
+          const missingDailyStats = DailyStats.create({
+            project,
+            installCount: averageInstallCount,
+            ratingCount: averageRatingCount,
+            reviewCount: averageReviewCount,
+            maxInstallCount,
+            maxRatingCount,
+            maxReviewCount,
+            date: new Date(new Date().getTime() - 24 * 60 * 60 * 1000 * i),
+            updatedAt: new Date(),
+          });
+          await this.createDailyStats(missingDailyStats);
+        }
+      } else {
+        const getYestredayDailyStats = await this.getDailyStatsByDate(
+          project.id,
+          new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
+        );
+        if (getYestredayDailyStats) {
+          installCount =
+            appDetails.maxInstalls - getYestredayDailyStats.maxInstallCount;
+          ratingCount =
+            appDetails.ratings - getYestredayDailyStats.maxRatingCount;
+          reviewCount =
+            appDetails.reviews - getYestredayDailyStats.maxReviewCount;
+        }
+
+        const dailyStats = DailyStats.create({
+          project,
+          installCount,
+          ratingCount,
+          reviewCount,
+          maxInstallCount: appDetails.maxInstalls,
+          maxRatingCount: appDetails.ratings,
+          maxReviewCount: appDetails.reviews,
+          date: new Date(),
+          updatedAt: new Date(),
+        });
+        await this.createDailyStats(dailyStats);
+      }
     }
     let updateProject: Project = project;
     updateProject.maxInstalls = appDetails.maxInstalls;

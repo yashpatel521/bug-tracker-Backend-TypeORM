@@ -117,6 +117,7 @@ class ProjectsController {
       }
       return ApiResponse.successResponse(res, project);
     } catch (error) {
+      console.log("error", error);
       return next(error);
     }
   }
