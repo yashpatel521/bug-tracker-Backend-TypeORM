@@ -5,7 +5,7 @@ import { User } from "../entity/user.entity";
 import { UserProject } from "../entity/userProject.entity";
 import { checkRoleAccess, getDaysBetweenDates } from "../utils/commonFunction";
 import { getAppDetailsFromAppStore } from "./appStore.service";
-import { getAppDetails } from "./googlePlay.service";
+import { getAppDetailsGoogle } from "./googlePlay.service";
 
 class ProjectService {
   async createOrUpdateProject(project: Project) {
@@ -65,7 +65,7 @@ class ProjectService {
     if (project.appType == "apple") {
       appDetails = await getAppDetailsFromAppStore(project.appId);
     } else {
-      appDetails = await getAppDetails(project.appId);
+      appDetails = await getAppDetailsGoogle(project.appId);
     }
     if (!appDetails) return;
     //check todays stats exist or not

@@ -136,7 +136,6 @@ class UserController {
       const profile = await userService.getProfile(+id);
       return ApiResponse.successResponse(res, profile);
     } catch (error) {
-      console.log(error);
       return next(error);
     }
   }
@@ -288,7 +287,6 @@ class UserController {
       };
       return ApiResponse.successResponse(res, data);
     } catch (error) {
-      console.log(error);
       return next(error);
     }
   }

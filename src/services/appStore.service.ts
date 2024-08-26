@@ -50,7 +50,7 @@ export const getAppDetailsFromAppStore = async (
       scoreText: appDetails.score.toFixed(1).toString(),
       description: appDetails.description,
       descriptionHTML: appDetails.description,
-      appId: appDetails.appId,
+      appId: appDetails.id,
       appUrl: appDetails.url,
       appIcon: appDetails.icon,
       developer: appDetails.developer,
@@ -64,11 +64,16 @@ export const getAppDetailsFromAppStore = async (
       ratings: appDetails.ratings,
       reviews: appDetails.reviews,
       createdAt: new Date(),
-      type: "apple",
+      appType: "apple",
       updatedAt: new Date(),
     };
     return res;
   } catch (err) {
-    console.log(err);
+    throw new Error("Could not fetch app details from App Store");
   }
+};
+
+export const searchAppsAppStore = async (term: string): Promise<any> => {
+  const searchResults: any = await executeScript("search", term);
+  return searchResults;
 };

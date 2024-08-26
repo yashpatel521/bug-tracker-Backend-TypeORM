@@ -98,7 +98,6 @@ class ProjectsController {
     try {
       const { projectId } = req.params;
       const user = req.user;
-
       if (!checkRoleAccess(user, ["admin"])) {
         const checkAccess = await projectsService.checkAccessToProjectByUser(
           projectId,
@@ -117,7 +116,6 @@ class ProjectsController {
       }
       return ApiResponse.successResponse(res, project);
     } catch (error) {
-      console.log("error", error);
       return next(error);
     }
   }
@@ -356,7 +354,6 @@ class ProjectsController {
       await bugService.updateBug(bug);
       return ApiResponse.successResponse(res, bug);
     } catch (error) {
-      console.log("error", error);
       return next(error);
     }
   }
@@ -509,7 +506,6 @@ class ProjectsController {
       const newBug = await bugService.createBug(bug);
       return ApiResponse.successResponse(res, newBug);
     } catch (error) {
-      console.log("error", error);
       return next(error);
     }
   }

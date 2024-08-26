@@ -31,8 +31,6 @@ class ApiResponse {
   };
 
   internalServerError = (res: Response, data: any) => {
-    console.log(data);
-
     res.statusCode = 500;
     return res.json({
       code: 500,

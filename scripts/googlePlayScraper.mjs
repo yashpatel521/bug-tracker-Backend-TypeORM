@@ -12,7 +12,7 @@ const getAppDetails = async (appId) => {
 
 const searchApps = async (term) => {
   try {
-    const results = await play.search({ term, num: 250 });
+    const results = await play.search({ term, num: 25 });
     console.log(JSON.stringify(results));
   } catch (error) {
     console.error(JSON.stringify({ error: error.message }));
@@ -35,7 +35,7 @@ const getTopApps = async () => {
     const results = await play.list({
       category: play.category.APPLICATION,
       collection: play.collection.GROSSING,
-      num: 250,
+      num: 25,
     });
     console.log(JSON.stringify(results));
   } catch (error) {

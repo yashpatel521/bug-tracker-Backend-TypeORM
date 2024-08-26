@@ -36,7 +36,7 @@ const executeScript = async (type: string, value: string): Promise<any> => {
   });
 };
 
-export const getAppDetails = async (appId: string): Promise<any> => {
+export const getAppDetailsGoogle = async (appId: string): Promise<any> => {
   try {
     const appDetails: AppDetails = await executeScript("app", appId);
     if (typeof appDetails === "string") return null;
@@ -60,17 +60,17 @@ export const getAppDetails = async (appId: string): Promise<any> => {
       maxInstalls: appDetails.maxInstalls,
       ratings: appDetails.ratings,
       reviews: appDetails.reviews,
-      type: "google",
+      appType: "google",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     return res;
   } catch (err) {
-    console.log(err);
+    throw new Error("Error fetching app details");
   }
 };
 
-export const searchApps = async (term: string): Promise<any> => {
+export const searchAppsGoogle = async (term: string): Promise<any> => {
   const searchResults: any = await executeScript("search", term);
   return searchResults;
 };

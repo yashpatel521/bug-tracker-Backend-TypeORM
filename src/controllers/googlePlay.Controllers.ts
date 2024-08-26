@@ -1,20 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import {
-  getAppDetails,
+  getAppDetailsGoogle,
   getTopApps,
-  searchApps,
+  searchAppsGoogle,
   suggestApps,
 } from "../services/googlePlay.service";
 import ApiResponse from "../Response/ApiResponse";
 import { BadRequest } from "../Errors/errors";
-import userService from "../services/user.service";
 import { AppDetails } from "../utils/types";
 import { Project } from "../entity/project.entity";
 import projectService from "../services/projects.service";
-import { User } from "../entity/user.entity";
 import userProjectService from "../services/userProject.service";
 import { UserProject } from "../entity/userProject.entity";
-import { getAppDetailsFromAppStore } from "../services/appStore.service";
+import {
+  getAppDetailsFromAppStore,
+  searchAppsAppStore,
+} from "../services/appStore.service";
 
 export const getAppInfo = async (
   req: Request,
@@ -29,7 +30,7 @@ export const getAppInfo = async (
     if (Number.isInteger(+appId)) {
       appDetails = await getAppDetailsFromAppStore(appId);
     } else {
-      appDetails = await getAppDetails(appId);
+      appDetails = await getAppDetailsGoogle(appId);
     }
     if (!appDetails) throw new BadRequest("App not found", 404);
 
@@ -51,9 +52,40 @@ export const searchAppInfo = async (
   }
 
   try {
-    const results = await searchApps(term as string);
-    return ApiResponse.successResponse(res, results);
+    const googleSearchResult = await searchAppsGoogle(term as string);
+    const updatedGoogleSearchResult = googleSearchResult.map((result: any) => {
+      return {
+        appId: result.appId,
+        title: result.title,
+        scoreText: result.scoreText,
+        url: result.url,
+        icon: result.icon,
+        developer: result.developer,
+        appType: "google",
+      };
+    });
+
+    const appStoreSearchResult = await searchAppsAppStore(term as string);
+    const updatedAppStoreSearchResult = appStoreSearchResult.map(
+      (result: any) => {
+        return {
+          appId: result.id,
+          title: result.title,
+          scoreText: result.score.toFixed(2).toString(),
+          url: result.url,
+          icon: result.icon,
+          developer: result.developer,
+          appType: "apple",
+        };
+      }
+    );
+
+    return ApiResponse.successResponse(res, [
+      ...updatedGoogleSearchResult,
+      ...updatedAppStoreSearchResult,
+    ]);
   } catch (error) {
+    console.error(error);
     return next(error);
   }
 };
@@ -70,8 +102,14 @@ export const suggestAppInfo = async (
   }
 
   try {
-    const results = await suggestApps(term as string);
-    return ApiResponse.successResponse(res, results);
+    const googleSearchResult = await suggestApps(term as string);
+    const updatedGoogleSearchResult = googleSearchResult.map((result: any) => {
+      return {
+        ...result,
+        appType: "google",
+      };
+    });
+    return ApiResponse.successResponse(res, updatedGoogleSearchResult);
   } catch (error) {
     return next(error);
   }
@@ -102,8 +140,14 @@ export const topApp = async (
   next: NextFunction
 ) => {
   try {
-    const topApps = await getTopApps();
-    return ApiResponse.successResponse(res, topApps);
+    const googleSearchResult = await getTopApps();
+    const updatedGoogleSearchResult = googleSearchResult.map((result: any) => {
+      return {
+        ...result,
+        appType: "google",
+      };
+    });
+    return ApiResponse.successResponse(res, updatedGoogleSearchResult);
   } catch (error) {
     return next(error);
   }
@@ -119,8 +163,12 @@ export const addApp = async (
     const { appId } = req.body;
     const checkProjectExists = await projectService.getProjectByAppId(appId);
     if (checkProjectExists) throw new BadRequest("Project already exists");
-
-    const appDetails: AppDetails = await getAppDetails(appId);
+    let appDetails: AppDetails;
+    if (Number.isInteger(+appId)) {
+      appDetails = await getAppDetailsFromAppStore(appId);
+    } else {
+      appDetails = await getAppDetailsGoogle(appId);
+    }
     if (!appDetails) throw new BadRequest("App not found", 404);
     const createProject = Project.create({
       ...appDetails,
