@@ -5,13 +5,13 @@ import ApiResponse from "../Response/ApiResponse";
 import userService from "../services/user.service";
 import { BadRequest } from "../Errors/errors";
 import { DeepPartial } from "typeorm";
-import Middleware from "../middlewares/Middleware";
 import * as bcrypt from "bcrypt";
 import { checkRoleAccess, getJwt } from "../utils/commonFunction";
 import subRoleService from "../services/subRole.service";
 import { deleteFile, fileUploader } from "../utils/imageUpload";
 import { UploadedFile } from "express-fileupload";
 import { userStatus } from "../utils/types";
+import bugService from "../services/bug.service";
 
 class UserController {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -286,6 +286,17 @@ class UserController {
         user,
       };
       return ApiResponse.successResponse(res, data);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async getUserBugs(req: Request | any, res: Response, next: NextFunction) {
+    try {
+      const user = req.user;
+      if (!user) throw new BadRequest("User not found", 404);
+      const bugs = await bugService.getUserBugs(+user.id);
+      return ApiResponse.successResponse(res, bugs);
     } catch (error) {
       return next(error);
     }

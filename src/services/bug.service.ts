@@ -94,6 +94,40 @@ class BugService {
     const result = await Bug.save(bug);
     return result;
   }
+
+  async getUserBugs(userId: number) {
+    const bugRepository = myDataSource.getRepository(Bug);
+    const bugs = await bugRepository
+      .createQueryBuilder("bug")
+      .leftJoinAndSelect("bug.project", "project")
+      .leftJoinAndSelect("bug.version", "version")
+      .leftJoinAndSelect("bug.assignedTo", "assignedTo")
+      .leftJoinAndSelect("bug.reportedBy", "reportedBy")
+      .where("reportedBy.id = :userId", { userId })
+      .orWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select("bugSub.id")
+          .from(Bug, "bugSub")
+          .leftJoin("bugSub.assignedTo", "assignedUser")
+          .where("assignedUser.id = :userId")
+          .getQuery();
+        return "bug.id IN " + subQuery;
+      })
+      .select([
+        "bug",
+        "version",
+        "assignedTo",
+        "reportedBy",
+        "project.id",
+        "project.title",
+      ])
+      .orderBy("bug.createdAt", "DESC")
+      .setParameter("userId", userId)
+      .getMany();
+
+    return bugs;
+  }
 }
 
 export default new BugService();
