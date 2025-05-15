@@ -6,7 +6,7 @@ import {
   suggestAppInfo,
   topApp,
   addApp,
-} from "../controllers/googlePlay.Controllers";
+} from "../controllers/googlePlay.controller";
 import { Auth } from "../middlewares/Auth";
 
 const router = Router();

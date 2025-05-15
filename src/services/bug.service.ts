@@ -1,3 +1,4 @@
+import { Brackets } from "typeorm";
 import myDataSource from "../app-data-source";
 import { Bug } from "../entity/bug.entity";
 import { BugImage } from "../entity/bugImage.entity";
@@ -95,25 +96,26 @@ class BugService {
     return result;
   }
 
-  async getUserBugs(userId: number) {
+  async getUserBugs(
+    userId: number,
+    params: {
+      query?: string;
+      currentPage: string;
+      sortBy?: string;
+      sortOrder?: "ASC" | "DESC";
+    }
+  ) {
+    const PAGE_SIZE = 10;
+    const page = parseInt(params.currentPage || "1", 10);
+    const offset = (page - 1) * PAGE_SIZE;
+
     const bugRepository = myDataSource.getRepository(Bug);
-    const bugs = await bugRepository
+    const queryBuilder = bugRepository
       .createQueryBuilder("bug")
       .leftJoinAndSelect("bug.project", "project")
       .leftJoinAndSelect("bug.version", "version")
       .leftJoinAndSelect("bug.assignedTo", "assignedTo")
       .leftJoinAndSelect("bug.reportedBy", "reportedBy")
-      .where("reportedBy.id = :userId", { userId })
-      .orWhere((qb) => {
-        const subQuery = qb
-          .subQuery()
-          .select("bugSub.id")
-          .from(Bug, "bugSub")
-          .leftJoin("bugSub.assignedTo", "assignedUser")
-          .where("assignedUser.id = :userId")
-          .getQuery();
-        return "bug.id IN " + subQuery;
-      })
       .select([
         "bug",
         "version",
@@ -122,11 +124,58 @@ class BugService {
         "project.id",
         "project.title",
       ])
-      .orderBy("bug.createdAt", "DESC")
-      .setParameter("userId", userId)
-      .getMany();
+      .where(
+        new Brackets((qb) => {
+          qb.where("reportedBy.id = :userId", { userId }).orWhere(
+            (subQb: any) => {
+              const subQuery = subQb
+                .subQuery()
+                .select("bugSub.id")
+                .from(Bug, "bugSub")
+                .leftJoin("bugSub.assignedTo", "assignedUser")
+                .where("assignedUser.id = :userId")
+                .getQuery();
+              return "bug.id IN " + subQuery;
+            }
+          );
+        })
+      )
+      .take(PAGE_SIZE)
+      .skip(offset)
+      .setParameter("userId", userId);
 
-    return bugs;
+    // Search filter
+    if (params.query) {
+      queryBuilder.andWhere(
+        "bug.title ILIKE :query OR bug.description ILIKE :query OR project.title ILIKE :query",
+        {
+          query: `%${params.query}%`,
+        }
+      );
+    }
+
+    // Sorting
+    if (params.sortBy && params.sortBy.toLocaleLowerCase() == "projecttitle") {
+      queryBuilder.orderBy(
+        `project.title`,
+        params.sortOrder?.toLocaleUpperCase() === "ASC" ? "ASC" : "DESC"
+      );
+    } else if (params.sortBy) {
+      queryBuilder.orderBy(
+        `bug.${params.sortBy}`,
+        params.sortOrder?.toLocaleUpperCase() === "ASC" ? "ASC" : "DESC"
+      );
+    } else {
+      queryBuilder.orderBy("bug.createdAt", "DESC");
+    }
+
+    const [bugs, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      bugs,
+      totalPages: Math.ceil(total / PAGE_SIZE),
+      currentPage: page,
+    };
   }
 }
 

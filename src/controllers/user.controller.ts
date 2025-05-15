@@ -294,8 +294,14 @@ class UserController {
   async getUserBugs(req: Request | any, res: Response, next: NextFunction) {
     try {
       const user = req.user;
+      const { query, currentPage, sortBy, sortOrder } = req.query;
       if (!user) throw new BadRequest("User not found", 404);
-      const bugs = await bugService.getUserBugs(+user.id);
+      const bugs = await bugService.getUserBugs(+user.id, {
+        query: query?.toString(),
+        currentPage: currentPage?.toString() || "1",
+        sortBy: sortBy?.toString() || "createdAt",
+        sortOrder: sortOrder?.toString() || "DESC",
+      });
       return ApiResponse.successResponse(res, bugs);
     } catch (error) {
       return next(error);
