@@ -465,6 +465,7 @@ class ProjectsController {
         versionId,
         projectId,
       } = req.body;
+      console.log(req.body);
       if (
         !versionId ||
         !projectId ||
