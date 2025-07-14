@@ -51,7 +51,7 @@ export class Project extends BaseEntity {
   @Column({ nullable: true })
   descriptionHTML: string;
 
-  @Column({ unique: true })
+  @Column({ nullable: true })
   appId: string;
 
   @Column({ nullable: true })
